@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 const uploadPath = path.join(__dirname, '..', process.env.UPLOAD_PATH || './uploads');
-const assetsPath = path.join(__dirname, '..', '..', 'assets', 'images');
+const assetsPath = process.env.ASSETS_PATH || path.join(__dirname, '..', 'assets', 'images');
 
 app.use(cors());
 app.use(express.json());
