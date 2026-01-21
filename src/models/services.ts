@@ -43,7 +43,13 @@ export const createService = (data: Omit<Service, 'id' | 'updated_at'>): Promise
         if (err) {
           reject(err);
         } else {
-          getServiceById(this.lastID).then(resolve).catch(reject);
+          getServiceById(this.lastID).then((service) => {
+            if (service) {
+              resolve(service);
+            } else {
+              reject(new Error('Service not found after creation'));
+            }
+          }).catch(reject);
         }
       }
     );
@@ -72,12 +78,24 @@ export const updateService = (id: number, data: Partial<Omit<Service, 'id' | 'up
           if (err) {
             reject(err);
           } else {
-            getServiceById(id).then(resolve).catch(reject);
+            getServiceById(id).then((service) => {
+              if (service) {
+                resolve(service);
+              } else {
+                reject(new Error('Service not found after update'));
+              }
+            }).catch(reject);
           }
         }
       );
     } else {
-      getServiceById(id).then(resolve).catch(reject);
+      getServiceById(id).then((service) => {
+        if (service) {
+          resolve(service);
+        } else {
+          reject(new Error('Service not found'));
+        }
+      }).catch(reject);
     }
   });
 };
