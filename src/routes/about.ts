@@ -11,7 +11,7 @@ router.post('/image', authMiddleware, upload.single('image'), async (req, res) =
   if (!req.file) {
     return res.status(400).json({ error: 'No image uploaded' });
   }
-  res.json({ imageUrl: `/uploads/${req.file.filename}` });
+  res.json({ imageUrl: `/storage/uploads/${req.file.filename}` });
 });
 
 export default router;
