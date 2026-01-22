@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import sharp from 'sharp';
 
-const uploadPath = process.env.UPLOAD_PATH || './uploads';
+const uploadPath = path.resolve(__dirname, '../..', process.env.UPLOAD_PATH || './storage/uploads');
 
 if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true });
