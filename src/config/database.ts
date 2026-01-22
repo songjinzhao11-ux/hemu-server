@@ -2,7 +2,8 @@ import sqlite3 from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-const dbPath = path.resolve(__dirname, '..', process.env.DATABASE_PATH || './storage/database/hemu.db');
+// 使用 process.cwd() 确保总是相对于项目根目录，无论如何运行
+const dbPath = path.join(process.cwd(), process.env.DATABASE_PATH || './storage/database/hemu.db');
 
 const dbDir = path.dirname(dbPath);
 

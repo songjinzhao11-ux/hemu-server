@@ -10,8 +10,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-const uploadPath = path.resolve(__dirname, '..', process.env.UPLOAD_PATH || './storage/uploads');
-const assetsPath = process.env.ASSETS_PATH || path.resolve(__dirname, '..', 'assets', 'images');
+const uploadPath = path.join(process.cwd(), process.env.UPLOAD_PATH || './storage/uploads');
+const assetsPath = process.env.ASSETS_PATH || path.join(process.cwd(), 'assets', 'images');
 
 app.use(cors());
 app.use(express.json());
