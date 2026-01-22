@@ -31,13 +31,14 @@ COPY --from=builder /app/dist ./dist
 # Ensure assets directory exists in source or handles missing assets gracefully
 COPY --from=builder /app/assets ./assets
 
-# Create directories for data and uploads
-RUN mkdir -p uploads data
+# Create empty directories for storage (uploads and database)
+RUN mkdir -p storage/uploads storage/database
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3001
-ENV DATABASE_PATH=./database/hemu.db
+ENV UPLOAD_PATH=./storage/uploads
+ENV DATABASE_PATH=./storage/database/hemu.db
 
 # Expose port
 EXPOSE 3001

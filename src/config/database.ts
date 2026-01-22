@@ -2,7 +2,7 @@ import sqlite3 from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-const dbPath = path.resolve(__dirname, '../..', process.env.DATABASE_PATH || './storage/database/hemu.db');
+const dbPath = path.resolve(__dirname, '..', process.env.DATABASE_PATH || './storage/database/hemu.db');
 
 const dbDir = path.dirname(dbPath);
 
