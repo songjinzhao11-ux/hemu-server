@@ -64,36 +64,49 @@ export const upload = multer({
 
 export const compressImage = async (filePath: string): Promise<{ success: boolean; error?: string }> => {
   const tempPath = filePath + '.tmp';
+  const fileName = path.basename(filePath);
+  
   try {
+    console.log(`[压缩开始] 文件: ${fileName}`);
+    
     // 检查文件是否存在
     if (!fs.existsSync(filePath)) {
+      console.error(`[压缩失败] 文件不存在: ${fileName}`);
       return { success: false, error: '上传的文件不存在或已被删除' };
     }
 
     // 检查文件大小
     const stats = fs.statSync(filePath);
     const maxSize = parseInt(process.env.MAX_FILE_SIZE || '5242880');
+    console.log(`[压缩检查] 文件大小: ${(stats.size / 1024).toFixed(2)}KB, 限制: ${(maxSize / 1024).toFixed(2)}KB`);
+    
     if (stats.size > maxSize) {
       fs.unlinkSync(filePath);
+      console.error(`[压缩失败] 文件过大: ${fileName}`);
       return { success: false, error: `文件过大 (${(stats.size / 1024 / 1024).toFixed(2)}MB)，最大允许 ${(maxSize / 1024 / 1024).toFixed(2)}MB` };
     }
 
     // 检查文件是否是有效的图像
     const image = sharp(filePath);
     const metadata = await image.metadata();
+    console.log(`[压缩检查] 图像格式: ${metadata.format}, 尺寸: ${metadata.width}x${metadata.height}`);
 
     if (!metadata.format) {
       fs.unlinkSync(filePath);
+      console.error(`[压缩失败] 无法识别格式: ${fileName}`);
       return { success: false, error: '无法识别文件格式，可能文件已损坏' };
     }
 
     if (!['jpeg', 'jpg', 'png', 'webp'].includes(metadata.format)) {
       fs.unlinkSync(filePath);
+      console.error(`[压缩失败] 不支持的格式: ${metadata.format}`);
       return { success: false, error: `不支持的图像格式: ${metadata.format}` };
     }
 
     // 根据原格式选择压缩参数
     try {
+      console.log(`[压缩处理] 开始压缩 ${metadata.format} 格式图片...`);
+      
       if (metadata.format === 'jpeg' || metadata.format === 'jpg') {
         await image.jpeg({ quality: 85 }).toFile(tempPath);
       } else if (metadata.format === 'png') {
@@ -104,15 +117,19 @@ export const compressImage = async (filePath: string): Promise<{ success: boolea
 
       // 验证临时文件是否存在且有效
       if (!fs.existsSync(tempPath)) {
+        console.error(`[压缩失败] 临时文件不存在: ${fileName}`);
         return { success: false, error: '图像压缩失败：无法创建压缩文件' };
       }
 
       const tempStats = fs.statSync(tempPath);
       if (tempStats.size === 0) {
         fs.unlinkSync(tempPath);
+        console.error(`[压缩失败] 压缩文件为空: ${fileName}`);
         return { success: false, error: '图像压缩失败：输出文件为空' };
       }
 
+      console.log(`[压缩成功] 原始: ${(stats.size / 1024).toFixed(2)}KB -> 压缩后: ${(tempStats.size / 1024).toFixed(2)}KB`);
+      
       fs.unlinkSync(filePath);
       fs.renameSync(tempPath, filePath);
       return { success: true };
@@ -121,6 +138,7 @@ export const compressImage = async (filePath: string): Promise<{ success: boolea
         fs.unlinkSync(tempPath);
       }
       const errorMsg = compressError.message || '图像压缩处理失败';
+      console.error(`[压缩失败] 压缩过程错误: ${errorMsg}`);
       return { success: false, error: `图像处理错误: ${errorMsg}` };
     }
   } catch (error: any) {
@@ -133,7 +151,7 @@ export const compressImage = async (filePath: string): Promise<{ success: boolea
     }
     
     const errorMsg = error.message || '未知错误';
-    console.error('图像压缩失败:', error);
+    console.error(`[压缩失败] ${fileName}:`, error);
     
     // 返回用户友好的错误信息
     if (errorMsg.includes('EISDIR')) {

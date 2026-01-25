@@ -56,19 +56,22 @@ const initDb = (): Promise<void> => {
         );
       `);
 
-      db.run(`
-        CREATE TABLE IF NOT EXISTS cases (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          title TEXT NOT NULL,
-          category TEXT NOT NULL,
-          image TEXT NOT NULL,
-          location TEXT NOT NULL,
-          year TEXT NOT NULL,
-          order_index INTEGER DEFAULT 0,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
+       db.run(`
+         CREATE TABLE IF NOT EXISTS cases (
+           id INTEGER PRIMARY KEY AUTOINCREMENT,
+           title TEXT NOT NULL,
+           category TEXT NOT NULL,
+           image TEXT NOT NULL,
+           location TEXT NOT NULL,
+           year TEXT NOT NULL,
+           description TEXT,
+           content TEXT,
+           gallery_images TEXT,
+           order_index INTEGER DEFAULT 0,
+           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+         );
+       `);
 
       db.run(`
         CREATE TABLE IF NOT EXISTS admins (

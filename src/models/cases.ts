@@ -7,6 +7,9 @@ export interface CaseStudy {
   image: string;
   location: string;
   year: string;
+  description?: string;
+  content?: string;
+  gallery_images?: string; // JSON string array
   order_index: number;
   created_at?: string;
   updated_at?: string;
@@ -39,8 +42,8 @@ export const getCaseById = (id: number): Promise<CaseStudy | undefined> => {
 export const createCase = (data: Omit<CaseStudy, 'id' | 'created_at' | 'updated_at'>): Promise<CaseStudy> => {
   return new Promise((resolve, reject) => {
     db.run(
-      'INSERT INTO cases (title, category, image, location, year, order_index) VALUES (?, ?, ?, ?, ?, ?)',
-      [data.title, data.category, data.image, data.location, data.year, data.order_index],
+      'INSERT INTO cases (title, category, image, location, year, description, content, gallery_images, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [data.title, data.category, data.image, data.location, data.year, data.description || null, data.content || null, data.gallery_images || null, data.order_index],
       function (err) {
         if (err) {
           reject(err);

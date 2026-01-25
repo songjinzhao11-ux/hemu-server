@@ -3,8 +3,14 @@ import { getAllCases, getCaseById, createCase, updateCase, deleteCase, reorderCa
 import { authMiddleware } from '../middleware/auth';
 import { upload, compressImage } from '../middleware/upload';
 import multer from 'multer';
+import fs from 'fs';
 
 const router = Router();
+
+// 诊断端点 - 测试路由是否正常
+router.get('/:id/gallery/test', (req, res) => {
+  res.json({ message: 'Gallery upload route is reachable', caseId: req.params.id });
+});
 
 router.get('/', async (req, res) => {
   try {
@@ -40,8 +46,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const caseItem = await updateCase(parseInt(req.params.id), req.body);
     res.json(caseItem);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update case' });
+  } catch (error: any) {
+    console.error('Failed to update case:', error);
+    res.status(500).json({ error: 'Failed to update case', details: error.message });
   }
 });
 
@@ -66,6 +73,7 @@ router.put('/reorder', authMiddleware, async (req, res) => {
   }
 });
 
+// Upload single image (main image)
 router.post('/:id/image', authMiddleware, upload.single('image'), async (req: Request, res: Response) => {
   if (!req.file) {
     return res.status(400).json({ error: '未检测到上传的文件，请重新选择' });
@@ -103,5 +111,106 @@ router.post('/:id/image', authMiddleware, upload.single('image'), async (req: Re
   
   res.status(500).json({ error: error?.message || '上传失败，请稍后重试' });
 });
+
+// Upload multiple gallery images
+router.post('/:id/gallery', 
+  authMiddleware, 
+  (req: Request, res: Response, next: NextFunction) => {
+    // 使用 multer 中间件处理文件上传
+    const uploadHandler = upload.array('images', 10);
+    uploadHandler(req, res, (err) => {
+      if (err) {
+        console.error('[Gallery Upload] Multer 错误:', err);
+        
+        // 处理 Multer 错误
+        if (err instanceof multer.MulterError) {
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            const maxSize = parseInt(process.env.MAX_FILE_SIZE || '5242880');
+            return res.status(400).json({ error: `文件过大，最大允许 ${(maxSize / 1024 / 1024).toFixed(2)}MB` });
+          } else if (err.code === 'LIMIT_FILE_COUNT') {
+            return res.status(400).json({ error: '一次最多只能上传10张图片' });
+          }
+          return res.status(400).json({ error: `上传失败: ${err.message}` });
+        }
+        
+        // 处理自定义验证错误
+        if (err && (err as any).code) {
+          return res.status(400).json({ error: err.message });
+        }
+        
+        return res.status(500).json({ error: err?.message || '上传失败，请稍后重试' });
+      }
+      
+      // 没有错误，继续到下一个处理器
+      next();
+    });
+  },
+  async (req: Request, res: Response) => {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: '未检测到上传的文件，请重新选择' });
+    }
+
+    const uploadedUrls: string[] = [];
+    const files = req.files as Express.Multer.File[];
+    const filesToCleanup: string[] = [];
+
+    try {
+      console.log(`[Gallery Upload] 开始处理 ${files.length} 张图片`);
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        filesToCleanup.push(file.path);
+        
+        console.log(`[Gallery Upload] 处理第 ${i + 1}/${files.length} 张图片: ${file.filename}`);
+        
+        // 压缩图片
+        const compressResult = await compressImage(file.path);
+        if (!compressResult.success) {
+          console.error(`[Gallery Upload] 第 ${i + 1} 张图片压缩失败:`, compressResult.error);
+          
+          // 清理所有已上传的文件
+          for (const path of filesToCleanup) {
+            try {
+              if (fs.existsSync(path)) {
+                fs.unlinkSync(path);
+                console.log(`[Gallery Upload] 已清理文件: ${path}`);
+              }
+            } catch (cleanupError) {
+              console.error(`[Gallery Upload] 清理文件失败: ${path}`, cleanupError);
+            }
+          }
+          
+          return res.status(400).json({ 
+            error: `第 ${i + 1} 张图片处理失败: ${compressResult.error}` 
+          });
+        }
+        
+        uploadedUrls.push(`/storage/uploads/${file.filename}`);
+        console.log(`[Gallery Upload] 第 ${i + 1} 张图片处理成功`);
+      }
+
+      console.log(`[Gallery Upload] 全部 ${files.length} 张图片处理成功`);
+      console.log(`[Gallery Upload] 返回数据:`, { imageUrls: uploadedUrls });
+      res.json({ imageUrls: uploadedUrls });
+    } catch (error: any) {
+      console.error('[Gallery Upload] 处理过程发生异常:', error);
+      
+      // 清理所有已上传的文件
+      for (const path of filesToCleanup) {
+        try {
+          if (fs.existsSync(path)) {
+            fs.unlinkSync(path);
+            console.log(`[Gallery Upload] 已清理文件: ${path}`);
+          }
+        } catch (cleanupError) {
+          console.error(`[Gallery Upload] 清理文件失败: ${path}`, cleanupError);
+        }
+      }
+      
+      const errorMsg = error.message || '文件处理失败';
+      return res.status(500).json({ error: `文件处理失败: ${errorMsg}` });
+    }
+  }
+);
 
 export default router;

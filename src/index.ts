@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import initDb from './utils/initDb';
+import migrateCasesTable from './utils/migrateCases';
 import routes from './routes';
 
 dotenv.config();
@@ -26,13 +27,21 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-initDb().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-    console.log(`API endpoint: http://localhost:${PORT}/api`);
-    console.log(`Health check: http://localhost:${PORT}/health`);
+// 初始化数据库并运行迁移
+initDb()
+  .then(() => {
+    console.log('✓ 数据库初始化完成');
+    return migrateCasesTable();
+  })
+  .then(() => {
+    console.log('✓ 数据库迁移完成');
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+      console.log(`API endpoint: http://localhost:${PORT}/api`);
+      console.log(`Health check: http://localhost:${PORT}/health`);
+    });
+  })
+  .catch((err) => {
+    console.error('Failed to initialize:', err);
+    process.exit(1);
   });
-}).catch((err) => {
-  console.error('Failed to initialize database:', err);
-  process.exit(1);
-});
